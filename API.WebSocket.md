@@ -11,34 +11,34 @@ Bilibili 直播弹幕 WebSocket 协议
 
 发送和接收的包都是这种格式。
 
-| 偏移 | 长度 | 类型 | 字节序 | 名称 | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| 0 | 4 | int | Big Endian | Packet Length | 数据包长度 |
-| 4 | 2 | int | Big Endian | Header Length | 数据包头部长度（固定为 `16`） |
-| 6 | 2 | int | Big Endian | Protocol Version | 协议版本（见下文） |
-| 8 | 4 | int | Big Endian | Operation | 操作类型（见下文） |
-| 12 | 4 | int | Big Endian | Sequence Id | 数据包头部长度（固定为 `1`） |
-| 16 | - | byte[] | - | Body | 数据内容 |
+| 偏移 | 长度 | 类型   | 字节序     | 名称             | 说明                          |
+| ---- | ---- | ------ | ---------- | ---------------- | ----------------------------- |
+| 0    | 4    | int    | Big Endian | Packet Length    | 数据包长度                    |
+| 4    | 2    | int    | Big Endian | Header Length    | 数据包头部长度（固定为 `16`） |
+| 6    | 2    | int    | Big Endian | Protocol Version | 协议版本（见下文）            |
+| 8    | 4    | int    | Big Endian | Operation        | 操作类型（见下文）            |
+| 12   | 4    | int    | Big Endian | Sequence Id      | 数据包头部长度（固定为 `1`）  |
+| 16   | -    | byte[] | -          | Body             | 数据内容                      |
 
 同一个 `WebSocket Frame` 可能包含多个 `Bilibili 直播数据包`，每个 `Bilibili 直播数据包` 直接首尾相连，数据包长度只表示 `Bilibili 直播数据包` 的长度，并非 `WebSocket Frame` 的长度。
 
 #### 协议版本
 
-| 值 | Body 格式 | 说明 |
-| --- | --- | --- |
-| 0 | JSON | JSON纯文本，可以直接通过 `JSON.stringify` 解析 |
-| 1 | Int 32 Big Endian | Body 内容为房间人气值 |
-| 2 | Buffer | 压缩过的 Buffer，Body 内容需要用zlib.inflate解压出一个新的数据包，然后从数据包格式那一步重新操作一遍 |
+| 值   | Body 格式         | 说明                                                         |
+| ---- | ----------------- | ------------------------------------------------------------ |
+| 0    | JSON              | JSON纯文本，可以直接通过 `JSON.stringify` 解析               |
+| 1    | Int 32 Big Endian | Body 内容为房间人气值                                        |
+| 2    | Buffer            | 压缩过的 Buffer，Body 内容需要用zlib.inflate解压出一个新的数据包，然后从数据包格式那一步重新操作一遍 |
 
 #### 操作类型
 
-| 值 | 发送者 | Body 格式 | 名称 | 说明 |
-| --- | --- | --- | --- | --- |
-| 2 | 客户端 | (空) | 心跳 | 不发送心跳包，70 秒之后会断开连接，通常每 30 秒发送 1 次 |
-| 3 | 服务器 | Int 32 Big Endian | 心跳回应 | Body 内容为房间人气值 |
-| 5 | 服务器 | JSON | 通知 | 弹幕、广播等全部信息 |
-| 7 | 客户端 | JSON | 进房 | WebSocket 连接成功后的发送的第一个数据包，发送要进入房间 ID |
-| 8 | 服务器 | (空) | 进房回应 | |
+| 值   | 发送者 | Body 格式         | 名称     | 说明                                                        |
+| ---- | ------ | ----------------- | -------- | ----------------------------------------------------------- |
+| 2    | 客户端 | (空)              | 心跳     | 不发送心跳包，70 秒之后会断开连接，通常每 30 秒发送 1 次    |
+| 3    | 服务器 | Int 32 Big Endian | 心跳回应 | Body 内容为房间人气值                                       |
+| 5    | 服务器 | JSON              | 通知     | 弹幕、广播等全部信息                                        |
+| 7    | 客户端 | JSON              | 进房     | WebSocket 连接成功后的发送的第一个数据包，发送要进入房间 ID |
+| 8    | 服务器 | (空)              | 进房回应 |                                                             |
 
 #### 进房 JSON 内容
 
@@ -53,14 +53,16 @@ Bilibili 直播弹幕 WebSocket 协议
 }
 ```
 
-| 字段 | 必选 | 类型 | 说明|
-| --- | --- | --- | --- |
-| clientver | false | string | 例如 `"1.5.10.1"` |
-| platform | false | string | 例如 `"web"` |
-| protover | false | number | 通常为 `2` |
-| roomid | true | number | 房间长 ID，可以通过 `room_init` API 获取 |
-| uid | false | number | uin，可以通过 `getUserInfo` API 获取 |
-| type | false | number | 不知道啥，总之写 `2` |
+| 字段      | 必选  | 类型   | 说明                                     |
+| --------- | ----- | ------ | ---------------------------------------- |
+| clientver | false | string | 例如 `"1.5.10.1"`                        |
+| platform  | false | string | 例如 `"web"`                             |
+| protover  | false | number | `1` 或者 `2`                             |
+| roomid    | true  | number | 房间长 ID，可以通过 `room_init` API 获取 |
+| uid       | false | number | uin，可以通过 `getUserInfo` API 获取     |
+| type      | false | number | 不知道啥，总之写 `2`                     |
+
+* protover 为 `1` 时不会使用zlib压缩，为 `2` 时会发送带有zlib压缩的包，也就是数据包协议为 `2` 。
 
 #### 心跳回应
 
